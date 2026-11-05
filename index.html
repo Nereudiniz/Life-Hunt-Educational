@@ -694,6 +694,7 @@ button { -webkit-tap-highlight-color: transparent; }
   object-fit: contain;
   border-radius: 9px;
   background: rgba(1,9,15,.38);
+  cursor: pointer;
 }
 
 .arsenal-card-info {
@@ -835,7 +836,7 @@ button { -webkit-tap-highlight-color: transparent; }
 
   <section id="planetScreen" class="screen">
     <div class="topbar">
-      <button class="back" onclick="showList()">← Lista</button>
+      <button class="back" id="planetBackButton" onclick="showList()">← Lista</button>
       <h1 id="planetTopTitle" class="screen-title">Planeta</h1>
     </div>
 
@@ -2099,6 +2100,7 @@ let indiceAtual = 0;
 const ARSENAL_STORAGE_KEY = "lifeHuntEducationalArsenalV1";
 let arsenalPlanetNames = loadArsenal();
 let draggedArsenalIndex = null;
+let returnToArsenalAfterPlanet = false;
 
 const homeScreen = document.getElementById("homeScreen");
 const listScreen = document.getElementById("listScreen");
@@ -2318,7 +2320,18 @@ function renderArsenal() {
     image.className = "arsenal-card-image";
     image.src = planet.imagem;
     image.alt = `Carta do planeta ${planet.nome}`;
-      
+    image.title = `Abrir detalhes de ${planet.nome}`;
+    image.tabIndex = 0;
+    image.setAttribute("role", "button");
+    image.setAttribute("aria-label", `Abrir detalhes de ${planet.nome}`);
+    image.addEventListener("click", () => openPlanetFromArsenal(planet.nome));
+    image.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPlanetFromArsenal(planet.nome);
+      }
+    });
+
     const info = document.createElement("div");
     info.className = "arsenal-card-info";
     const nameEl = document.createElement("strong");
@@ -2397,7 +2410,26 @@ function renderArsenal() {
 }
 
 function openPlanet(index) {
+  returnToArsenalAfterPlanet = false;
+  document.getElementById("planetBackButton").textContent = "← Lista";
   indiceAtual = index;
+  renderPlanet();
+  showOnly(planetScreen);
+}
+
+function openPlanetFromArsenal(name) {
+  const planet = PLANETAS.find(p => p.nome === name);
+  if (!planet) return;
+
+  // Mantém a navegação Anterior/Próximo restrita ao nível do planeta aberto.
+  nivelAtual = planet.nivel;
+  listaAtual = PLANETAS
+    .filter(p => p.nivel === planet.nivel)
+    .sort((a,b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  indiceAtual = listaAtual.findIndex(p => p.nome === name);
+
+  returnToArsenalAfterPlanet = true;
+  document.getElementById("planetBackButton").textContent = "← Arsenal";
   renderPlanet();
   showOnly(planetScreen);
 }
@@ -2504,6 +2536,12 @@ function showHome() {
 }
 
 function showList() {
+  if (returnToArsenalAfterPlanet) {
+    returnToArsenalAfterPlanet = false;
+    renderArsenal();
+    showOnly(arsenalScreen);
+    return;
+  }
   showOnly(listScreen);
 }
 
