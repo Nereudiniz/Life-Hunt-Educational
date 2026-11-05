@@ -661,8 +661,36 @@ button { -webkit-tap-highlight-color: transparent; }
   transition: border-color .16s ease, opacity .16s ease, transform .16s ease, box-shadow .16s ease;
 }
 
-.arsenal-card[draggable="true"] { cursor: grab; }
 .arsenal-card.dragging { opacity: .42; transform: scale(.98); }
+
+.arsenal-image-button {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.arsenal-image-button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.arsenal-image-button:hover .arsenal-card-image {
+  filter: brightness(1.08);
+}
+
+.arsenal-order {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.arsenal-order:active { cursor: grabbing; }
 .arsenal-card.drag-over {
   border-color: var(--cyan);
   box-shadow: 0 0 25px rgba(30,215,255,.22);
@@ -695,6 +723,7 @@ button { -webkit-tap-highlight-color: transparent; }
   border-radius: 9px;
   background: rgba(1,9,15,.38);
   cursor: pointer;
+  pointer-events: none;
 }
 
 .arsenal-card-info {
@@ -826,7 +855,7 @@ button { -webkit-tap-highlight-color: transparent; }
       <p id="arsenalSummary" class="arsenal-summary">Seu Arsenal está vazio.</p>
       <button class="arsenal-clear-btn" type="button" onclick="clearArsenal()">Limpar arsenal</button>
     </div>
-    <p class="arsenal-note">Arraste as cartas para reorganizar a sequência ou use as setas. O Arsenal é salvo automaticamente neste navegador.</p>
+    <p class="arsenal-note">Arraste o número da posição para reorganizar a sequência ou use as setas. O Arsenal é salvo automaticamente neste navegador.</p>
     <div id="arsenalEmpty" class="arsenal-empty">
       <p>Você ainda não adicionou planetas ao seu Arsenal.<br>Volte ao catálogo e escolha as cartas que deseja reunir.</p>
       <button class="arsenal-empty-btn" type="button" onclick="showHome()">Escolher planetas</button>
@@ -2308,29 +2337,34 @@ function renderArsenal() {
 
     const card = document.createElement("article");
     card.className = "arsenal-card";
-    card.draggable = true;
+    card.draggable = false;
     card.dataset.index = index;
     card.setAttribute("aria-label", `${index + 1}. ${planet.nome}`);
 
     const order = document.createElement("span");
     order.className = "arsenal-order";
     order.textContent = String(index + 1).padStart(2, "0");
+    order.draggable = true;
+    order.title = "Arraste este número para reorganizar os planetas";
+    order.setAttribute("aria-label", `Arrastar para reordenar ${planet.nome}`);
+
+    const imageButton = document.createElement("button");
+    imageButton.type = "button";
+    imageButton.className = "arsenal-image-button";
+    imageButton.title = `Abrir detalhes de ${planet.nome}`;
+    imageButton.setAttribute("aria-label", `Abrir detalhes de ${planet.nome}`);
+    imageButton.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      openPlanetFromArsenal(planet.nome);
+    });
 
     const image = document.createElement("img");
     image.className = "arsenal-card-image";
     image.src = planet.imagem;
     image.alt = `Carta do planeta ${planet.nome}`;
-    image.title = `Abrir detalhes de ${planet.nome}`;
-    image.tabIndex = 0;
-    image.setAttribute("role", "button");
-    image.setAttribute("aria-label", `Abrir detalhes de ${planet.nome}`);
-    image.addEventListener("click", () => openPlanetFromArsenal(planet.nome));
-    image.addEventListener("keydown", event => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openPlanetFromArsenal(planet.nome);
-      }
-    });
+    image.draggable = false;
+    imageButton.appendChild(image);
 
     const info = document.createElement("div");
     info.className = "arsenal-card-info";
@@ -2368,7 +2402,7 @@ function renderArsenal() {
     remove.addEventListener("click", () => removePlanetFromArsenal(name));
 
     controls.append(up, down, remove);
-    card.append(order, image, info, controls);
+    card.append(order, imageButton, info, controls);
 
     card.addEventListener("dragstart", event => {
       draggedArsenalIndex = index;
